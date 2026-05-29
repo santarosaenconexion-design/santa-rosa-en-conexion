@@ -20,6 +20,7 @@ function Login() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setMensaje(error.message)
+      else window.location.href = '/reportar'
     }
     setCargando(false)
   }

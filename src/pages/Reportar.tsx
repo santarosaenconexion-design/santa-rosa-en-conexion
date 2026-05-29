@@ -41,7 +41,7 @@ function Reportar() {
         ...data,
         foto_url,
         usuario_id: user.id,
-        barrio_id: '00000000-0000-0000-0000-000000000000',
+        barrio_id: 'b7675202-a73f-4945-99f7-129090156f99',
         ubicacion: null,
       })
 
