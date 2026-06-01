@@ -62,6 +62,7 @@ function Navbar() {
       <Link to="/" style={navLinkStyle('/')}>Mapa</Link>
       <Link to="/dashboard" style={navLinkStyle('/dashboard')}>Dashboard</Link>
       <Link to="/reportar" style={navLinkStyle('/reportar')}>Reportar</Link>
+      <Link to="/acerca" style={navLinkStyle('/acerca')}>Acerca</Link>
       {usuario && <Link to="/mis-reportes" style={navLinkStyle('/mis-reportes')}>Mis reportes</Link>}
       {esAdmin && <Link to="/admin" style={navLinkStyle('/admin')}>Admin</Link>}
     </>
@@ -82,19 +83,16 @@ function Navbar() {
         zIndex: 100,
         flexShrink: 0,
       }}>
-        {/* Logo */}
         <Link to="/" style={{ fontSize: 13, fontWeight: 500, color: '#7DD4E8', letterSpacing: 0.5, fontFamily: 'var(--sans)', flexShrink: 0 }}>
           <span style={{ color: '#fff' }}>Santa Rosa</span> en Conexión
         </Link>
 
-        {/* Desktop links */}
         {!isMobile && (
           <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             {links}
           </div>
         )}
 
-        {/* Derecha */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {!isMobile && usuario && (
             <>
@@ -121,7 +119,6 @@ function Navbar() {
             }}>Registrarse</Link>
           )}
 
-          {/* Hamburger */}
           {isMobile && (
             <button
               onClick={() => setMenuAbierto(!menuAbierto)}
@@ -136,7 +133,6 @@ function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile menu */}
       {isMobile && menuAbierto && (
         <div style={{
           background: '#1C3A4A',
