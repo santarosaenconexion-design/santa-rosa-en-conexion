@@ -121,7 +121,7 @@ function Inicio() {
             .sort((a, b) => b.count - a.count)
             .slice(0, 5)
         )
-        setReportesRecientes(data as ReporteReciente[])
+        setReportesRecientes(data as unknown as ReporteReciente[])
       }
       setCargando(false)
     }

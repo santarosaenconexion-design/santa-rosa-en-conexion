@@ -76,11 +76,9 @@ function Admin() {
     cursor: 'pointer',
     color: tab === t ? 'var(--celeste)' : 'var(--gris-texto)',
     borderBottom: `2px solid ${tab === t ? 'var(--celeste)' : 'transparent'}`,
-    marginBottom: -1,
     fontWeight: tab === t ? 500 : 400,
     background: 'none',
     border: 'none',
-    borderBottom: `2px solid ${tab === t ? 'var(--celeste)' : 'transparent'}`,
     fontFamily: 'var(--sans)',
     transition: 'color 0.15s',
   })
