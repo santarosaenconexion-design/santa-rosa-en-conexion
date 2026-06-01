@@ -10,6 +10,7 @@ function Login() {
   const [esRegistro, setEsRegistro] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [verPassword, setVerPassword] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,10 +53,7 @@ function Login() {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12,
-    fontWeight: 500,
-    color: 'var(--azul)',
-    display: 'block',
+    fontSize: 12, fontWeight: 500, color: 'var(--azul)', display: 'block',
   }
 
   const esError = mensaje.toLowerCase().includes('error') || mensaje.toLowerCase().includes('invalid')
@@ -111,7 +109,27 @@ function Login() {
 
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>Contraseña</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} required />
+              <div style={{ position: 'relative', marginTop: 6 }}>
+                <input
+                  type={verPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={{ ...inputStyle, marginTop: 0, paddingRight: 40 }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setVerPassword(!verPassword)}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--gris-texto)', fontSize: 16, padding: 2,
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  {verPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
 
             {esRegistro && (

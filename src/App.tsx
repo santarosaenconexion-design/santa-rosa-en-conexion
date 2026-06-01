@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Reportar from './pages/Reportar'
 import Admin from './pages/Admin'
 import Dashboard from './pages/Dashboard'
+import MisReportes from './pages/MisReportes'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/mis-reportes" element={<MisReportes />} />
       </Routes>
     </>
   )

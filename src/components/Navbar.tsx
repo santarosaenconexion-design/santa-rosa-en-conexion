@@ -58,20 +58,18 @@ function Navbar() {
       zIndex: 100,
       flexShrink: 0,
     }}>
-      {/* Logo */}
       <Link to="/" style={{ fontSize: 14, fontWeight: 500, color: '#7DD4E8', letterSpacing: 0.5, fontFamily: 'var(--sans)' }}>
         <span style={{ color: '#fff' }}>Santa Rosa</span> en Conexión
       </Link>
 
-      {/* Links */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
         <Link to="/" style={navLinkStyle('/')}>Mapa</Link>
         <Link to="/dashboard" style={navLinkStyle('/dashboard')}>Dashboard</Link>
         <Link to="/reportar" style={navLinkStyle('/reportar')}>Reportar</Link>
+        {usuario && <Link to="/mis-reportes" style={navLinkStyle('/mis-reportes')}>Mis reportes</Link>}
         {esAdmin && <Link to="/admin" style={navLinkStyle('/admin')}>Admin</Link>}
       </div>
 
-      {/* Derecha */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {usuario ? (
           <>
