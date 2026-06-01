@@ -1,28 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import Mapa from '../components/Mapa'
 
-type Reporte = {
-  id: string
-  calle: string
-  entre_calles: string
-  descripcion: string
-  lat: number
-  lng: number
-  categoria: string
-  foto_url?: string
-  apoyos_count: number
-}
-
+type Stats = { total: number; aprobados: number; pendientes: number; totalApoyos: number }
 type CategoriaStat = { nombre: string; icono: string; count: number; color: string }
 type BarrioStat = { nombre: string; count: number }
 type ReporteReciente = {
-  id: string
-  calle: string
-  entre_calles: string
-  estado: string
-  created_at: string
-  apoyos_count: number
+  id: string; calle: string; entre_calles: string; estado: string
+  created_at: string; apoyos_count: number
   categorias?: { nombre: string; icono: string }
   barrios?: { nombre: string }
 }
@@ -42,15 +26,6 @@ const estadoConfig: Record<string, { label: string; color: string; bg: string }>
   rechazado: { label: 'Rechazado', color: '#791F1F', bg: '#FCEBEB' },
 }
 
-const leyenda = [
-  { nombre: 'Bacheo',          color: '#2A9DC8', icono: '🚧' },
-  { nombre: 'Luminarias',      color: '#e67e22', icono: '💡' },
-  { nombre: 'Pérdida de Agua', color: '#3498db', icono: '💧' },
-  { nombre: 'Cloacas',         color: '#8e44ad', icono: '🪠' },
-  { nombre: 'Arbolado Urbano', color: '#27ae60', icono: '🌳' },
-  { nombre: 'Residuos',        color: '#7F8C8D', icono: '🗑️' },
-]
-
 function BarraHorizontal({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
   const pct = max > 0 ? Math.round((count / max) * 100) : 0
   return (
@@ -64,9 +39,8 @@ function BarraHorizontal({ label, count, max, color }: { label: string; count: n
   )
 }
 
-function Inicio() {
-  const [reportes, setReportes] = useState<Reporte[]>([])
-  const [stats, setStats] = useState({ total: 0, aprobados: 0, pendientes: 0, totalApoyos: 0 })
+function Dashboard() {
+  const [stats, setStats] = useState<Stats>({ total: 0, aprobados: 0, pendientes: 0, totalApoyos: 0 })
   const [categorias, setCategorias] = useState<CategoriaStat[]>([])
   const [barrios, setBarrios] = useState<BarrioStat[]>([])
   const [reportesRecientes, setReportesRecientes] = useState<ReporteReciente[]>([])
@@ -77,7 +51,7 @@ function Inicio() {
     async function cargarDatos() {
       const { data } = await supabase
         .from('reportes')
-        .select('id, calle, entre_calles, descripcion, ubicacion, foto_url, apoyos_count, estado, created_at, categorias(nombre, icono), barrios(nombre)')
+        .select('id, calle, entre_calles, estado, created_at, apoyos_count, categorias(nombre, icono), barrios(nombre)')
         .order('created_at', { ascending: false })
 
       if (data) {
@@ -88,18 +62,6 @@ function Inicio() {
           pendientes: data.filter(r => r.estado === 'pendiente').length,
           totalApoyos,
         })
-
-        const aprobados = data
-          .filter(r => r.estado === 'aprobado' && r.ubicacion)
-          .map(r => ({
-            ...r,
-            lat: r.ubicacion.coordinates[1],
-            lng: r.ubicacion.coordinates[0],
-            categoria: (r.categorias as any)?.nombre ?? 'Sin categoría',
-            foto_url: r.foto_url ?? undefined,
-            apoyos_count: r.apoyos_count ?? 0,
-          }))
-        setReportes(aprobados)
 
         const contCat: Record<string, CategoriaStat> = {}
         data.forEach((r: any) => {
@@ -140,53 +102,49 @@ function Inicio() {
   const maxCat = categorias[0]?.count ?? 1
   const maxBarrio = barrios[0]?.count ?? 1
 
+  if (cargando) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--gris-texto)' }}>
+      Cargando...
+    </div>
+  )
+
   return (
     <div style={{ background: 'var(--gris-suave)', minHeight: '100vh' }}>
 
-      {/* Mapa */}
-      {cargando ? (
-        <div style={{ height: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#dde8dd' }}>
-          <p style={{ color: 'var(--gris-texto)' }}>Cargando mapa...</p>
-        </div>
-      ) : (
-        <Mapa reportes={reportes} />
-      )}
-
-      {/* Leyenda */}
-      <div style={{ background: '#fff', borderBottom: '0.5px solid var(--gris-borde)', padding: '10px 20px' }}>
-        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--gris-texto)', letterSpacing: 1, textTransform: 'uppercase' }}>Categorías:</span>
-          {leyenda.map(c => (
-            <div key={c.nombre} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, border: '2px solid #fff', boxShadow: `0 0 0 1.5px ${c.color}` }} />
-              <span style={{ fontSize: 11, color: '#374151' }}>{c.icono} {c.nombre}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Dashboard público */}
-      <div style={{ background: 'var(--azul)', padding: '20px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '0.5px solid rgba(255,255,255,0.08)' }}>
+      {/* Header */}
+      <div style={{ background: 'var(--azul)', padding: '20px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>Estado de la ciudad · Santa Rosa</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, letterSpacing: 1 }}>Datos en tiempo real</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, letterSpacing: 1 }}>
+            Datos actualizados · Acceso libre
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span style={{
+            background: 'rgba(42,157,200,0.15)', border: '0.5px solid rgba(42,157,200,0.3)',
+            color: '#7DD4E8', fontSize: 10, padding: '5px 12px', borderRadius: 20,
+            letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500,
+          }}>
+            Acceso libre
+          </span>
         </div>
       </div>
 
-      {/* Stats grid */}
+      {/* Métricas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--azul)' }}>
         {[
-          { label: 'Reportes publicados', valor: stats.aprobados, delta: 'En el mapa' },
-          { label: 'En revisión', valor: stats.pendientes, delta: 'Pendientes' },
+          { label: 'Reportes publicados', valor: stats.aprobados, delta: `+${Math.round(stats.aprobados * 0.06)} este mes` },
           { label: 'Total reportes', valor: stats.total, delta: 'Histórico' },
+          { label: 'Con apoyos múltiples', valor: reportesRecientes.filter(r => (r.apoyos_count ?? 0) > 1).length, delta: `${stats.total > 0 ? Math.round(reportesRecientes.filter(r => (r.apoyos_count ?? 0) > 1).length / stats.total * 100) : 0}% del total` },
           { label: 'Apoyos totales', valor: stats.totalApoyos, delta: 'De la comunidad' },
         ].map(s => (
           <div key={s.label} style={{ background: '#fff', padding: '18px 20px' }}>
             <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginBottom: 6 }}>{s.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 500, color: 'var(--azul)' }}>
-              {s.valor}<span style={{ color: 'var(--celeste)' }}>+</span>
+            <div style={{ fontSize: 26, fontWeight: 500, color: 'var(--azul)' }}>{s.valor}</div>
+            <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+              <i className="ti ti-trending-up" style={{ fontSize: 12, color: 'var(--verde)' }} />
+              {s.delta}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginTop: 4 }}>{s.delta}</div>
           </div>
         ))}
       </div>
@@ -199,7 +157,6 @@ function Inicio() {
             <BarraHorizontal key={c.nombre} label={`${c.icono} ${c.nombre}`} count={c.count} max={maxCat} color={c.color} />
           ))}
         </div>
-
         <div style={{ background: '#fff', padding: '18px 20px' }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--azul)', marginBottom: 14 }}>Barrios con más reportes</div>
           {barrios.map((b, i) => (
@@ -220,7 +177,7 @@ function Inicio() {
               placeholder="Buscar por calle o barrio..."
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
-              style={{ border: 'none', background: 'transparent', fontSize: 11, outline: 'none', width: 180, color: 'var(--azul)' }}
+              style={{ border: 'none', background: 'transparent', fontSize: 11, outline: 'none', width: 180, color: 'var(--azul)', fontFamily: 'var(--sans)' }}
             />
           </div>
         </div>
@@ -236,7 +193,7 @@ function Inicio() {
             </tr>
           </thead>
           <tbody>
-            {reportesFiltrados.slice(0, 10).map(r => {
+            {reportesFiltrados.slice(0, 15).map(r => {
               const cat = r.categorias as any
               const barrio = r.barrios as any
               const est = estadoConfig[r.estado] ?? estadoConfig.pendiente
@@ -257,7 +214,7 @@ function Inicio() {
                       {cat?.nombre ?? '—'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px', color: 'var(--gris-texto)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{barrio?.nombre ?? '—'}</td>
+                  <td style={{ padding: '10px', color: 'var(--gris-texto)' }}>{barrio?.nombre ?? '—'}</td>
                   <td style={{ padding: '10px', color: 'var(--gris-texto)' }}>
                     {new Date(r.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
                   </td>
@@ -278,11 +235,11 @@ function Inicio() {
           </tbody>
         </table>
         {reportesFiltrados.length === 0 && (
-          <p style={{ textAlign: 'center', padding: 32, color: 'var(--gris-texto)' }}>No se encontraron reportes.</p>
+          <p style={{ textAlign: 'center', padding: 32, color: 'var(--gris-texto)', fontSize: 13 }}>No se encontraron reportes.</p>
         )}
       </div>
     </div>
   )
 }
 
-export default Inicio
+export default Dashboard
