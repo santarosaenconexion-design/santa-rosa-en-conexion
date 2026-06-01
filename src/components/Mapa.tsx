@@ -4,37 +4,18 @@ import { supabase } from '../lib/supabase'
 import 'leaflet/dist/leaflet.css'
 
 type Reporte = {
-  id: string
-  calle: string
-  entre_calles: string
-  descripcion: string
-  lat: number
-  lng: number
-  categoria: string
-  foto_url?: string
-  apoyos_count: number
+  id: string; calle: string; entre_calles: string; descripcion: string
+  lat: number; lng: number; categoria: string; foto_url?: string; apoyos_count: number
 }
-
-type Props = {
-  reportes: Reporte[]
-}
+type Props = { reportes: Reporte[] }
 
 const colorCat: Record<string, string> = {
-  'Bacheo':          '#2A9DC8',
-  'Luminarias':      '#e67e22',
-  'Pérdida de Agua': '#3498db',
-  'Cloacas':         '#8e44ad',
-  'Arbolado Urbano': '#27ae60',
-  'Residuos':        '#7F8C8D',
+  'Bacheo': '#2A9DC8', 'Luminarias': '#e67e22', 'Pérdida de Agua': '#3498db',
+  'Cloacas': '#8e44ad', 'Arbolado Urbano': '#27ae60', 'Residuos': '#7F8C8D',
 }
-
 const iconoCat: Record<string, string> = {
-  'Bacheo':          '🚧',
-  'Luminarias':      '💡',
-  'Pérdida de Agua': '💧',
-  'Cloacas':         '🪠',
-  'Arbolado Urbano': '🌳',
-  'Residuos':        '🗑️',
+  'Bacheo': '🚧', 'Luminarias': '💡', 'Pérdida de Agua': '💧',
+  'Cloacas': '🪠', 'Arbolado Urbano': '🌳', 'Residuos': '🗑️',
 }
 
 function Mapa({ reportes }: Props) {
@@ -55,6 +36,10 @@ function Mapa({ reportes }: Props) {
     <MapContainer
       center={[-36.6167, -64.2833]}
       zoom={13}
+      minZoom={12}
+      maxZoom={18}
+      maxBounds={[[-36.75, -64.40], [-36.50, -64.15]]}
+      maxBoundsViscosity={1.0}
       style={{ height: 480, width: '100%' }}
     >
       <TileLayer
@@ -95,24 +80,14 @@ function Mapa({ reportes }: Props) {
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    onClick={() => apoyar(r)}
-                    disabled={apoyando === r.id}
-                    style={{
-                      flex: 1, padding: '7px 0',
-                      background: '#2A9DC8', color: '#fff',
-                      border: 'none', borderRadius: 6,
-                      fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                      opacity: apoyando === r.id ? 0.7 : 1,
-                    }}
-                  >
+                  <button onClick={() => apoyar(r)} disabled={apoyando === r.id} style={{
+                    flex: 1, padding: '7px 0', background: '#2A9DC8', color: '#fff',
+                    border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                    cursor: 'pointer', opacity: apoyando === r.id ? 0.7 : 1,
+                  }}>
                     👍 Sumarme
                   </button>
-                  <div style={{
-                    padding: '7px 10px', background: '#F3F4F2',
-                    borderRadius: 6, fontSize: 11, color: '#1C3A4A', fontWeight: 600,
-                    display: 'flex', alignItems: 'center', gap: 3,
-                  }}>
+                  <div style={{ padding: '7px 10px', background: '#F3F4F2', borderRadius: 6, fontSize: 11, color: '#1C3A4A', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
                     👥 {apoyos}
                   </div>
                 </div>

@@ -12,6 +12,9 @@ const coloresCat: Record<string, string> = {
   'Cloacas': '#8e44ad', 'Arbolado Urbano': '#27ae60', 'Residuos': '#7F8C8D',
 }
 
+// Límites geográficos de Santa Rosa, La Pampa
+const LIMITES = { latMin: -36.70, latMax: -36.55, lngMin: -64.35, lngMax: -64.20 }
+
 function useAncho() {
   const [ancho, setAncho] = useState(window.innerWidth)
   useEffect(() => {
@@ -44,9 +47,22 @@ function Reportar() {
 
   function obtenerGPS() {
     setGpsEstado('loading')
+    setMensaje('')
     navigator.geolocation.getCurrentPosition(
-      pos => { setUbicacion({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsEstado('ok') },
-      () => setGpsEstado('error')
+      pos => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        if (lat < LIMITES.latMin || lat > LIMITES.latMax || lng < LIMITES.lngMin || lng > LIMITES.lngMax) {
+          setGpsEstado('error')
+          setMensaje('Tu ubicación está fuera de Santa Rosa. Acercate al lugar del problema para reportarlo.')
+          return
+        }
+        setUbicacion({ lat, lng })
+        setGpsEstado('ok')
+      },
+      () => {
+        setGpsEstado('error')
+        setMensaje('No se pudo obtener tu ubicación. Verificá los permisos de GPS.')
+      }
     )
   }
 
@@ -94,13 +110,13 @@ function Reportar() {
     fontSize: 13, color: 'var(--azul)', background: '#fff', outline: 'none', fontFamily: 'var(--sans)',
   }
   const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: 'var(--azul)', display: 'block' }
-  const esError = mensaje.toLowerCase().includes('error')
+  const esError = mensaje.toLowerCase().includes('error') || mensaje.toLowerCase().includes('fuera')
 
   return (
     <div style={{ background: 'var(--gris-suave)', minHeight: '100vh' }}>
       <div style={{ background: 'var(--azul)', padding: '16px 20px', borderBottom: '2px solid var(--celeste)' }}>
         <div style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>Nuevo reporte</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Completá el formulario para reportar un problema urbano</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Completá el formulario para reportar un problema urbano en Santa Rosa</div>
       </div>
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: isMobile ? '16px 12px 40px' : '28px 24px 60px' }}>
@@ -118,8 +134,7 @@ function Reportar() {
 
         <div style={{ background: '#fff', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-card)', overflow: 'hidden' }}>
 
-          {/* Categorías */}
-          <div style={{ padding: '16px 16px', borderBottom: '0.5px solid var(--gris-borde)' }}>
+          <div style={{ padding: '16px', borderBottom: '0.5px solid var(--gris-borde)' }}>
             <label style={{ ...labelStyle, marginBottom: 10 }}>Categoría</label>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
               {categorias.map(c => {
@@ -140,26 +155,24 @@ function Reportar() {
             </div>
           </div>
 
-          <div style={{ padding: '16px 16px' }}>
+          <div style={{ padding: '16px' }}>
 
-            {/* GPS */}
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Ubicación GPS</label>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={obtenerGPS} style={{
                   padding: '8px 16px', borderRadius: 8,
-                  border: `1px solid ${gpsEstado === 'ok' ? 'var(--celeste)' : 'var(--gris-borde)'}`,
+                  border: `1px solid ${gpsEstado === 'ok' ? 'var(--celeste)' : gpsEstado === 'error' ? 'var(--rojo)' : 'var(--gris-borde)'}`,
                   background: gpsEstado === 'ok' ? 'var(--celeste)' : '#fff',
-                  color: gpsEstado === 'ok' ? '#fff' : 'var(--azul)',
+                  color: gpsEstado === 'ok' ? '#fff' : gpsEstado === 'error' ? 'var(--rojo)' : 'var(--azul)',
                   fontWeight: 500, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--sans)',
                 }}>
-                  {gpsEstado === 'loading' ? '📡 Obteniendo...' : gpsEstado === 'ok' ? '✓ GPS obtenido' : gpsEstado === 'error' ? '⚠️ Sin GPS' : '📍 Obtener ubicación'}
+                  {gpsEstado === 'loading' ? '📡 Obteniendo...' : gpsEstado === 'ok' ? '✓ GPS obtenido' : gpsEstado === 'error' ? '⚠️ Reintentá' : '📍 Obtener ubicación'}
                 </button>
                 {ubicacion && <span style={{ fontSize: 11, color: 'var(--gris-texto)' }}>{ubicacion.lat.toFixed(4)}, {ubicacion.lng.toFixed(4)}</span>}
               </div>
             </div>
 
-            {/* Calle */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label style={labelStyle}>Calle</label>
