@@ -11,6 +11,7 @@ type MiReporte = {
   estado: string
   created_at: string
   apoyos_count: number
+  motivo_rechazo?: string
   categorias?: { nombre: string; icono: string }
   barrios?: { nombre: string }
 }
@@ -39,50 +40,52 @@ function MisReportes() {
   const [misApoyos, setMisApoyos] = useState<MiApoyo[]>([])
   const [cargando, setCargando] = useState(true)
   const [tab, setTab] = useState<'reportes' | 'apoyos'>('reportes')
+  const [borrando, setBorrando] = useState<string | null>(null)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    async function cargar() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { navigate('/login'); return }
+  async function cargar() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { navigate('/login'); return }
 
-      const [{ data: reportes }, { data: apoyos }] = await Promise.all([
-        supabase
-          .from('reportes')
-          .select('id, calle, entre_calles, descripcion, foto_url, estado, created_at, apoyos_count, categorias(nombre, icono), barrios(nombre)')
-          .eq('usuario_id', user.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('apoyos')
-          .select('id, created_at, reportes(id, calle, entre_calles, estado, apoyos_count, categorias(nombre, icono))')
-          .eq('usuario_id', user.id)
-          .order('created_at', { ascending: false }),
-      ])
+    const [{ data: reportes }, { data: apoyos }] = await Promise.all([
+      supabase
+        .from('reportes')
+        .select('id, calle, entre_calles, descripcion, foto_url, estado, created_at, apoyos_count, motivo_rechazo, categorias(nombre, icono), barrios(nombre)')
+        .eq('usuario_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('apoyos')
+        .select('id, created_at, reportes(id, calle, entre_calles, estado, apoyos_count, categorias(nombre, icono))')
+        .eq('usuario_id', user.id)
+        .order('created_at', { ascending: false }),
+    ])
 
-      if (reportes) setMisReportes(reportes as unknown as MiReporte[])
-      if (apoyos) setMisApoyos(apoyos as unknown as MiApoyo[])
-      setCargando(false)
-    }
-    cargar()
-  }, [])
+    if (reportes) setMisReportes(reportes as unknown as MiReporte[])
+    if (apoyos) setMisApoyos(apoyos as unknown as MiApoyo[])
+    setCargando(false)
+  }
+
+  useEffect(() => { cargar() }, [])
+
+  async function borrarReporte(id: string) {
+    if (!confirm('¿Borrar este reporte? Esta acción no se puede deshacer.')) return
+    setBorrando(id)
+    await supabase.from('reportes').delete().eq('id', id)
+    await cargar()
+    setBorrando(null)
+  }
 
   const tabStyle = (t: string): React.CSSProperties => ({
-    fontSize: 13,
-    padding: '11px 18px',
-    cursor: 'pointer',
+    fontSize: 13, padding: '11px 18px', cursor: 'pointer',
     color: tab === t ? 'var(--celeste)' : 'var(--gris-texto)',
     borderBottom: `2px solid ${tab === t ? 'var(--celeste)' : 'transparent'}`,
     fontWeight: tab === t ? 500 : 400,
-    background: 'none',
-    border: 'none',
-    fontFamily: 'var(--sans)',
-    transition: 'color 0.15s',
+    background: 'none', border: 'none', fontFamily: 'var(--sans)', transition: 'color 0.15s',
   })
 
   return (
     <div style={{ background: 'var(--gris-suave)', minHeight: '100vh' }}>
 
-      {/* Header */}
       <div style={{ background: 'var(--azul)', padding: '20px 28px', borderBottom: '2px solid var(--celeste)' }}>
         <div style={{ fontSize: 16, fontWeight: 500, color: '#fff' }}>Mis reportes</div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
@@ -90,7 +93,6 @@ function MisReportes() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{ background: '#fff', borderBottom: '1px solid var(--gris-borde)', padding: '0 28px', display: 'flex' }}>
         <button style={tabStyle('reportes')} onClick={() => setTab('reportes')}>
           Mis reportes {!cargando && `(${misReportes.length})`}
@@ -112,9 +114,7 @@ function MisReportes() {
                 background: 'var(--celeste)', color: '#fff', border: 'none',
                 padding: '10px 24px', borderRadius: 8, fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'var(--sans)',
-              }}>
-                Hacer un reporte
-              </button>
+              }}>Hacer un reporte</button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -128,6 +128,7 @@ function MisReportes() {
                     border: '0.5px solid var(--gris-borde)',
                     boxShadow: 'var(--shadow-card)', overflow: 'hidden',
                     display: 'grid', gridTemplateColumns: r.foto_url ? '100px 1fr' : '1fr',
+                    opacity: borrando === r.id ? 0.5 : 1,
                   }}>
                     {r.foto_url && (
                       <img src={r.foto_url} alt="foto"
@@ -155,14 +156,30 @@ function MisReportes() {
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, color: 'var(--gris-texto)' }}>
                         <span>📅 {new Date(r.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          👥 <strong style={{ color: 'var(--azul)' }}>{r.apoyos_count ?? 0}</strong> apoyos
-                        </span>
+                        <span>👥 <strong style={{ color: 'var(--azul)' }}>{r.apoyos_count ?? 0}</strong> apoyos</span>
                       </div>
+
+                      {/* Motivo de rechazo */}
                       {r.estado === 'rechazado' && (
-                        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--rojo)', background: '#FCEBEB', padding: '6px 10px', borderRadius: 6 }}>
-                          Tu reporte fue rechazado. Revisá tu email para ver el motivo.
+                        <div style={{ marginTop: 8, fontSize: 11, color: '#791F1F', background: '#FCEBEB', padding: '8px 10px', borderRadius: 6, borderLeft: '3px solid var(--rojo)' }}>
+                          <strong>Motivo del rechazo:</strong> {r.motivo_rechazo ?? 'Revisá tu email para más información.'}
                         </div>
+                      )}
+
+                      {/* Borrar — solo pendientes y rechazados */}
+                      {(r.estado === 'pendiente' || r.estado === 'rechazado') && (
+                        <button
+                          onClick={() => borrarReporte(r.id)}
+                          disabled={borrando === r.id}
+                          style={{
+                            marginTop: 10, padding: '5px 12px', borderRadius: 6,
+                            border: '1px solid #f1a0a0', background: 'transparent',
+                            color: 'var(--rojo)', fontSize: 11, cursor: 'pointer',
+                            fontFamily: 'var(--sans)',
+                          }}
+                        >
+                          🗑 Borrar reporte
+                        </button>
                       )}
                     </div>
                   </div>
@@ -204,9 +221,7 @@ function MisReportes() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, color: 'var(--gris-texto)' }}>
                       <span>👍 Apoyaste el {new Date(a.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        👥 <strong style={{ color: 'var(--azul)' }}>{r.apoyos_count ?? 0}</strong> apoyos totales
-                      </span>
+                      <span>👥 <strong style={{ color: 'var(--azul)' }}>{r.apoyos_count ?? 0}</strong> apoyos totales</span>
                     </div>
                   </div>
                 )

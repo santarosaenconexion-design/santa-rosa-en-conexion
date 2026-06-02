@@ -12,7 +12,6 @@ const coloresCat: Record<string, string> = {
   'Cloacas': '#8e44ad', 'Arbolado Urbano': '#27ae60', 'Residuos': '#7F8C8D',
 }
 
-// Límites geográficos de Santa Rosa, La Pampa
 const LIMITES = { latMin: -36.70, latMax: -36.55, lngMin: -64.35, lngMax: -64.20 }
 
 function useAncho() {
@@ -84,7 +83,7 @@ function Reportar() {
       }
       const { error } = await supabase.from('reportes').insert({
         calle: data.calle, entre_calles: data.entre_calles, descripcion: data.descripcion,
-        categoria_id: catSeleccionada || data.categoria_id, barrio_id: data.barrio_id,
+        categoria_id: catSeleccionada || data.categoria_id, barrio_id: data.barrio_id === 'otro' ? null : data.barrio_id,
         foto_url, usuario_id: user.id,
         ubicacion: ubicacion ? `POINT(${ubicacion.lng} ${ubicacion.lat})` : null,
         estado: 'pendiente',
@@ -189,6 +188,7 @@ function Reportar() {
               <select {...register('barrio_id', { required: true })} style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="">Seleccioná un barrio...</option>
                 {barrios.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                <option value="otro">Otro / No sé</option>
               </select>
             </div>
 

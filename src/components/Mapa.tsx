@@ -5,7 +5,8 @@ import 'leaflet/dist/leaflet.css'
 
 type Reporte = {
   id: string; calle: string; entre_calles: string; descripcion: string
-  lat: number; lng: number; categoria: string; foto_url?: string; apoyos_count: number
+  lat: number; lng: number; categoria: string; foto_url?: string
+  apoyos_count: number; autor_nombre?: string; autor_email?: string
 }
 type Props = { reportes: Reporte[] }
 
@@ -35,9 +36,7 @@ function Mapa({ reportes }: Props) {
   return (
     <MapContainer
       center={[-36.6167, -64.2833]}
-      zoom={13}
-      minZoom={12}
-      maxZoom={18}
+      zoom={13} minZoom={12} maxZoom={18}
       maxBounds={[[-36.75, -64.40], [-36.50, -64.15]]}
       maxBoundsViscosity={1.0}
       style={{ height: 480, width: '100%' }}
@@ -75,8 +74,13 @@ function Mapa({ reportes }: Props) {
                   {r.calle}{r.entre_calles ? ` e/ ${r.entre_calles}` : ''}
                 </div>
                 {r.descripcion && (
-                  <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 8, lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6, lineHeight: 1.4 }}>
                     {r.descripcion}
+                  </div>
+                )}
+                {(r.autor_nombre || r.autor_email) && (
+                  <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 8, paddingTop: 6, borderTop: '0.5px solid #E5E7EB' }}>
+                    👤 {r.autor_nombre ?? ''}{r.autor_email ? ` · ${r.autor_email}` : ''}
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

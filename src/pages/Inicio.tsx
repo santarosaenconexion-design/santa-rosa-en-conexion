@@ -4,7 +4,8 @@ import Mapa from '../components/Mapa'
 
 type Reporte = {
   id: string; calle: string; entre_calles: string; descripcion: string
-  lat: number; lng: number; categoria: string; foto_url?: string; apoyos_count: number
+  lat: number; lng: number; categoria: string; foto_url?: string
+  apoyos_count: number; autor_nombre?: string; autor_email?: string
 }
 type CategoriaStat = { nombre: string; icono: string; count: number; color: string }
 type BarrioStat = { nombre: string; count: number }
@@ -71,7 +72,7 @@ function Inicio() {
     async function cargarDatos() {
       const { data } = await supabase
         .from('reportes')
-        .select('id, calle, entre_calles, descripcion, ubicacion, foto_url, apoyos_count, estado, created_at, categorias(nombre, icono), barrios(nombre)')
+        .select('id, calle, entre_calles, descripcion, ubicacion, foto_url, apoyos_count, estado, created_at, categorias(nombre, icono), barrios(nombre), usuarios(nombre, email)')
         .order('created_at', { ascending: false })
       if (data) {
         const totalApoyos = data.reduce((acc, r) => acc + (r.apoyos_count ?? 0), 0)
@@ -85,7 +86,10 @@ function Inicio() {
           ...r,
           lat: r.ubicacion.coordinates[1], lng: r.ubicacion.coordinates[0],
           categoria: (r.categorias as any)?.nombre ?? 'Sin categoría',
-          foto_url: r.foto_url ?? undefined, apoyos_count: r.apoyos_count ?? 0,
+          foto_url: r.foto_url ?? undefined,
+          apoyos_count: r.apoyos_count ?? 0,
+          autor_nombre: (r.usuarios as any)?.nombre ?? '',
+          autor_email: (r.usuarios as any)?.email ?? '',
         }))
         setReportes(aprobados)
         const contCat: Record<string, CategoriaStat> = {}
@@ -128,7 +132,6 @@ function Inicio() {
         <Mapa reportes={reportes} />
       )}
 
-      {/* Leyenda */}
       <div style={{ background: '#fff', borderBottom: '0.5px solid var(--gris-borde)', padding: '10px 16px' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 10, color: 'var(--gris-texto)', letterSpacing: 1, textTransform: 'uppercase' }}>Categorías:</span>
@@ -141,13 +144,11 @@ function Inicio() {
         </div>
       </div>
 
-      {/* Header dashboard */}
       <div style={{ background: 'var(--azul)', padding: '16px 20px' }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}>Estado de la ciudad · Santa Rosa</div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Datos en tiempo real</div>
       </div>
 
-      {/* Stats grid */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '1px', background: 'var(--azul)' }}>
         {[
           { label: 'Publicados', valor: stats.aprobados, delta: 'En el mapa' },
@@ -163,7 +164,6 @@ function Inicio() {
         ))}
       </div>
 
-      {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1px', background: 'var(--gris-borde)' }}>
         <div style={{ background: '#fff', padding: '18px 20px' }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--azul)', marginBottom: 14 }}>Reportes por categoría</div>
@@ -175,19 +175,16 @@ function Inicio() {
         </div>
       </div>
 
-      {/* Tabla */}
       <div style={{ background: '#fff', padding: '18px 16px', borderTop: '0.5px solid var(--gris-borde)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--azul)' }}>Reportes recientes</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--gris-suave)', border: '0.5px solid var(--gris-borde)', borderRadius: 8, padding: '5px 10px' }}>
-            <i className="ti ti-search" style={{ fontSize: 13, color: 'var(--gris-texto)' }} />
             <input type="text" placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
               style={{ border: 'none', background: 'transparent', fontSize: 11, outline: 'none', width: isMobile ? 100 : 180, color: 'var(--azul)' }} />
           </div>
         </div>
 
         {isMobile ? (
-          /* Mobile: cards en vez de tabla */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {reportesFiltrados.slice(0, 10).map(r => {
               const cat = r.categorias as any
