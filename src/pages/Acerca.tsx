@@ -1,3 +1,72 @@
+import { useState } from 'react'
+
+function FormContacto() {
+  const [nombre, setNombre] = useState('')
+  const [email, setEmail] = useState('')
+  const [mensaje, setMensaje] = useState('')
+  const [enviado, setEnviado] = useState(false)
+  const [cargando, setCargando] = useState(false)
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault()
+    setCargando(true)
+    await fetch('https://formsubmit.co/ajax/santarosaenconexion@gmail.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ nombre, email, mensaje, _subject: 'Sugerencia desde Santa Rosa en Conexión' }),
+    })
+    setEnviado(true)
+    setCargando(false)
+  }
+
+  const inputStyle: React.CSSProperties = {
+    display: 'block', width: '100%', padding: '9px 12px', marginTop: 6,
+    borderRadius: 8, border: '1px solid var(--gris-borde)',
+    fontSize: 13, color: 'var(--azul)', background: '#fff',
+    outline: 'none', fontFamily: 'var(--sans)',
+  }
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 'var(--r)', padding: '20px 22px', boxShadow: 'var(--shadow)' }}>
+      <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--azul)', marginBottom: 16 }}>¿Tenés una sugerencia?</div>
+      {enviado ? (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>✅</div>
+          <div style={{ fontSize: 13, color: 'var(--verde)', fontWeight: 500 }}>¡Gracias por tu sugerencia!</div>
+          <div style={{ fontSize: 12, color: 'var(--gris-texto)', marginTop: 4 }}>La vamos a revisar y responder por email.</div>
+        </div>
+      ) : (
+        <form onSubmit={enviar}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--azul)' }}>Nombre</label>
+              <input value={nombre} onChange={e => setNombre(e.target.value)} style={inputStyle} required />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--azul)' }}>Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} required />
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--azul)' }}>Sugerencia o comentario</label>
+            <textarea value={mensaje} onChange={e => setMensaje(e.target.value)}
+              style={{ ...inputStyle, height: 90, resize: 'vertical' }}
+              placeholder="Contanos qué mejorarías o cómo podemos ayudarte..." required />
+          </div>
+          <button type="submit" disabled={cargando} style={{
+            width: '100%', padding: '10px', borderRadius: 8, border: 'none',
+            background: 'var(--celeste)', color: '#fff', fontWeight: 500,
+            fontSize: 13, cursor: cargando ? 'default' : 'pointer',
+            opacity: cargando ? 0.7 : 1, fontFamily: 'var(--sans)',
+          }}>
+            {cargando ? 'Enviando...' : '📨 Enviar sugerencia'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
 function Acerca() {
   return (
     <div style={{ background: 'var(--gris-suave)', minHeight: '100vh' }}>
@@ -29,7 +98,7 @@ function Acerca() {
               { label: 'Organización', valor: 'Conexión Exitosa', texto: 'Proyecto de Responsabilidad Social con foco en alfabetización digital y memoria colectiva urbana. Sin intención política ni institucional.' },
               { label: 'Objetivo', valor: 'Visibilizar · No exigir resolución', texto: 'Plataforma donde vecinos documentan y georreferencian problemas de infraestructura urbana.' },
               { label: 'Alcance', valor: 'Santa Rosa · La Pampa', texto: 'Ciudad de 115.000 habitantes sin ninguna plataforma pública de reclamo georreferenciado activa.' },
-              { label: 'Licencia', valor: 'MIT · Open Source', texto: 'Stack 100% open source. Puede ser replicada por otras ciudades sin costo. Código público en GitHub.' },
+              { label: 'Tecnología', valor: 'React + Supabase + Netlify', texto: 'Stack moderno, escalable y de acceso libre. Puede ser replicada por otras ciudades sin costo.' },
             ].map((c, i) => (
               <div key={i} style={{ background: i === 0 ? 'var(--azul)' : i === 2 ? 'var(--celeste)' : '#fff', padding: '28px 24px' }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' as const, opacity: 0.5, marginBottom: 8, color: i === 0 || i === 2 ? '#fff' : 'var(--azul)' }}>{c.label}</div>
@@ -39,7 +108,6 @@ function Acerca() {
             ))}
           </div>
 
-          {/* Antes / Después */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: 'var(--azul)' }}>
             <div style={{ background: '#EAF4F9', padding: '28px 24px' }}>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' as const, color: 'var(--gris-texto)', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--gris-borde)' }}>Sin plataforma</div>
@@ -83,7 +151,6 @@ function Acerca() {
             ))}
           </div>
 
-          {/* Categorías */}
           <div style={{ background: '#fff', borderRadius: 'var(--r)', padding: '20px 24px', boxShadow: 'var(--shadow)' }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' as const, color: 'var(--gris-texto)', marginBottom: 16 }}>Categorías disponibles</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
@@ -139,7 +206,7 @@ function Acerca() {
         </section>
 
         {/* ── 04 NORMAS ── */}
-        <section>
+        <section style={{ marginBottom: 48 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid var(--azul)' }}>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--celeste)', border: '1px solid var(--celeste)', padding: '3px 8px', letterSpacing: 2 }}>04</span>
             <h2 style={{ fontFamily: 'var(--sans)', fontWeight: 800, fontSize: 20, color: 'var(--azul)', margin: 0 }}>Normas de convivencia</h2>
@@ -186,6 +253,54 @@ function Acerca() {
             <p style={{ fontSize: 12, color: 'var(--gris-texto)', lineHeight: 1.7, margin: 0 }}>
               Todos los reportes pasan por revisión del equipo de Conexión Exitosa antes de publicarse. Los reportes que incumplan las normas serán rechazados con un motivo. El vecino recibe un email en ambos casos.
             </p>
+          </div>
+        </section>
+
+        {/* ── 05 CONTACTO ── */}
+        <section>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid var(--azul)' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--celeste)', border: '1px solid var(--celeste)', padding: '3px 8px', letterSpacing: 2 }}>05</span>
+            <h2 style={{ fontFamily: 'var(--sans)', fontWeight: 800, fontSize: 20, color: 'var(--azul)', margin: 0 }}>Contacto y sugerencias</h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <a href="mailto:santarosaenconexion@gmail.com" style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: '#fff', borderRadius: 'var(--r)', padding: '18px 20px',
+                boxShadow: 'var(--shadow)', textDecoration: 'none',
+                border: '1px solid var(--gris-borde)',
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--celeste-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                  ✉️
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--gris-texto)', fontFamily: 'var(--mono)', letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 3 }}>Email</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--azul)' }}>santarosaenconexion@gmail.com</div>
+                </div>
+              </a>
+
+              <a href="https://instagram.com/_conexionexitosa" target="_blank" rel="noopener noreferrer" style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: '#fff', borderRadius: 'var(--r)', padding: '18px 20px',
+                boxShadow: 'var(--shadow)', textDecoration: 'none',
+                border: '1px solid var(--gris-borde)',
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="20" height="20" rx="5" stroke="white" strokeWidth="2"/>
+                    <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="2"/>
+                    <circle cx="17.5" cy="6.5" r="1.5" fill="white"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--gris-texto)', fontFamily: 'var(--mono)', letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 3 }}>Instagram</div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--azul)' }}>@_conexionexitosa</div>
+                </div>
+              </a>
+            </div>
+
+            <FormContacto />
           </div>
         </section>
 
