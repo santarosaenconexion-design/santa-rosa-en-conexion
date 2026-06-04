@@ -73,7 +73,7 @@ function Login() {
     fontSize: 12, fontWeight: 500, color: 'var(--azul)', display: 'block',
   }
 
-  const esError = !mensaje.includes('Revisá tu email')
+  const esError = mensaje.length > 0 && !mensaje.includes('Revisá tu email')
 
   return (
     <div style={{
@@ -161,9 +161,9 @@ function Login() {
             {mensaje && (
               <div style={{
                 fontSize: 12, marginBottom: 16, padding: '9px 12px', borderRadius: 8,
-                background: mensaje.includes('Revisá tu email') ? '#EAF3DE' : '#FCEBEB',
-                color: mensaje.includes('Revisá tu email') ? 'var(--verde)' : 'var(--rojo)',
-                borderLeft: `3px solid ${mensaje.includes('Revisá tu email') ? 'var(--verde)' : 'var(--rojo)'}`,
+                background: esError ? '#FCEBEB' : '#EAF3DE',
+                color: esError ? 'var(--rojo)' : 'var(--verde)',
+                borderLeft: `3px solid ${esError ? 'var(--rojo)' : 'var(--verde)'}`,
               }}>
                 {mensaje}
               </div>
