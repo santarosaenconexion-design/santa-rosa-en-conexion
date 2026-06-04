@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-type Stats = { total: number; aprobados: number; pendientes: number; totalApoyos: number }
+type Stats = {
+  total: number; aprobados: number; pendientes: number; totalApoyos: number
+  resueltos: number; vecinos: number; catTop: string; barrioTop: string
+  promedioAprobacion: number; conApoyos: number
+}
 type CategoriaStat = { nombre: string; icono: string; count: number; color: string }
 type BarrioStat = { nombre: string; count: number }
 type ReporteReciente = {
@@ -45,7 +49,11 @@ function useAncho() {
 }
 
 function Dashboard() {
-  const [stats, setStats] = useState<Stats>({ total: 0, aprobados: 0, pendientes: 0, totalApoyos: 0 })
+  const [stats, setStats] = useState<Stats>({
+    total: 0, aprobados: 0, pendientes: 0, totalApoyos: 0,
+    resueltos: 0, vecinos: 0, catTop: '—', barrioTop: '—',
+    promedioAprobacion: 0, conApoyos: 0,
+  })
   const [categorias, setCategorias] = useState<CategoriaStat[]>([])
   const [barrios, setBarrios] = useState<BarrioStat[]>([])
   const [reportesRecientes, setReportesRecientes] = useState<ReporteReciente[]>([])
@@ -56,13 +64,28 @@ function Dashboard() {
 
   useEffect(() => {
     async function cargarDatos() {
-      const { data } = await supabase
-        .from('reportes')
-        .select('id, calle, entre_calles, estado, created_at, apoyos_count, categorias(nombre, icono), barrios(nombre)')
-        .order('created_at', { ascending: false })
+      const [{ data }, { count: vecinos }] = await Promise.all([
+        supabase.from('reportes')
+          .select('id, calle, entre_calles, estado, created_at, aprobado_at, apoyos_count, estado_solucion, categorias(nombre, icono), barrios(nombre)')
+          .order('created_at', { ascending: false }),
+        supabase.from('usuarios').select('*', { count: 'exact', head: true }),
+      ])
+
       if (data) {
         const totalApoyos = data.reduce((acc, r) => acc + (r.apoyos_count ?? 0), 0)
-        setStats({ total: data.length, aprobados: data.filter(r => r.estado === 'aprobado').length, pendientes: data.filter(r => r.estado === 'pendiente').length, totalApoyos })
+        const conApoyos = data.filter(r => (r.apoyos_count ?? 0) > 0).length
+        const resueltos = data.filter(r => (r as any).estado_solucion === 'resuelto').length
+
+        // Promedio de aprobación en horas
+        const aprobados = data.filter(r => r.estado === 'aprobado' && r.aprobado_at)
+        const promedioAprobacion = aprobados.length > 0
+          ? Math.round(aprobados.reduce((acc, r) => {
+              const diff = new Date(r.aprobado_at!).getTime() - new Date(r.created_at).getTime()
+              return acc + diff / (1000 * 60 * 60)
+            }, 0) / aprobados.length)
+          : 0
+
+        // Top categoría
         const contCat: Record<string, CategoriaStat> = {}
         data.forEach((r: any) => {
           const nombre = r.categorias?.nombre ?? 'Sin categoría'
@@ -70,10 +93,28 @@ function Dashboard() {
           if (!contCat[nombre]) contCat[nombre] = { nombre, icono, count: 0, color: colorCat[nombre] ?? '#1C3A4A' }
           contCat[nombre].count++
         })
-        setCategorias(Object.values(contCat).sort((a, b) => b.count - a.count))
+        const catsSorted = Object.values(contCat).sort((a, b) => b.count - a.count)
+        setCategorias(catsSorted)
+
+        // Top barrio
         const contBarrio: Record<string, number> = {}
-        data.forEach((r: any) => { const nombre = r.barrios?.nombre ?? 'Sin barrio'; contBarrio[nombre] = (contBarrio[nombre] ?? 0) + 1 })
-        setBarrios(Object.entries(contBarrio).map(([nombre, count]) => ({ nombre, count })).sort((a, b) => b.count - a.count).slice(0, 5))
+        data.forEach((r: any) => {
+          const nombre = r.barrios?.nombre ?? 'Sin barrio'
+          contBarrio[nombre] = (contBarrio[nombre] ?? 0) + 1
+        })
+        const barriosSorted = Object.entries(contBarrio).map(([nombre, count]) => ({ nombre, count })).sort((a, b) => b.count - a.count)
+        setBarrios(barriosSorted.slice(0, 5))
+
+        setStats({
+          total: data.length,
+          aprobados: data.filter(r => r.estado === 'aprobado').length,
+          pendientes: data.filter(r => r.estado === 'pendiente').length,
+          totalApoyos, conApoyos, resueltos,
+          vecinos: vecinos ?? 0,
+          catTop: catsSorted[0]?.nombre ?? '—',
+          barrioTop: barriosSorted[0]?.nombre ?? '—',
+          promedioAprobacion,
+        })
         setReportesRecientes(data as unknown as ReporteReciente[])
       }
       setCargando(false)
@@ -93,6 +134,8 @@ function Dashboard() {
 
   return (
     <div style={{ background: 'var(--gris-suave)', minHeight: '100vh' }}>
+
+      {/* Header */}
       <div style={{ background: 'var(--azul)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}>Estado de la ciudad · Santa Rosa</div>
@@ -103,20 +146,50 @@ function Dashboard() {
         </span>
       </div>
 
+      {/* KPIs principales */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '1px', background: 'var(--azul)' }}>
         {[
-          { label: 'Publicados', valor: stats.aprobados },
-          { label: 'Total reportes', valor: stats.total },
-          { label: 'Con apoyos', valor: reportesRecientes.filter(r => (r.apoyos_count ?? 0) > 1).length },
-          { label: 'Apoyos totales', valor: stats.totalApoyos },
+          { label: 'Publicados', valor: stats.aprobados, sub: 'En el mapa' },
+          { label: 'Vecinos registrados', valor: stats.vecinos, sub: 'Usuarios activos' },
+          { label: 'Apoyos totales', valor: stats.totalApoyos, sub: 'De la comunidad' },
+          { label: 'Resueltos', valor: stats.resueltos, sub: 'Cerrados por vecinos' },
         ].map(s => (
           <div key={s.label} style={{ background: '#fff', padding: '14px 16px' }}>
             <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginBottom: 4 }}>{s.label}</div>
             <div style={{ fontSize: 24, fontWeight: 500, color: 'var(--azul)' }}>{s.valor}</div>
+            <div style={{ fontSize: 10, color: 'var(--gris-texto)', marginTop: 2 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
+      {/* KPIs secundarios */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '1px', background: 'var(--gris-borde)', borderTop: '1px solid var(--gris-borde)' }}>
+        {[
+          { label: 'En revisión', valor: stats.pendientes, sub: 'Pendientes de aprobación', color: '#633806' },
+          { label: 'Con apoyos', valor: stats.conApoyos, sub: 'Reportes con al menos 1 apoyo', color: 'var(--celeste)' },
+          { label: 'Categoría top', valor: stats.catTop, sub: 'La más reportada', color: 'var(--azul)' },
+          { label: 'Barrio más activo', valor: stats.barrioTop, sub: 'Mayor cantidad de reportes', color: 'var(--azul)' },
+        ].map(s => (
+          <div key={s.label} style={{ background: '#fff', padding: '14px 16px', borderTop: `3px solid ${s.color}` }}>
+            <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginBottom: 4 }}>{s.label}</div>
+            <div style={{ fontSize: typeof s.valor === 'string' ? 14 : 22, fontWeight: 500, color: s.color, lineHeight: 1.2 }}>{s.valor}</div>
+            <div style={{ fontSize: 10, color: 'var(--gris-texto)', marginTop: 4 }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* KPI tiempo de aprobación */}
+      {stats.promedioAprobacion > 0 && (
+        <div style={{ background: 'var(--azul)', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 22, fontWeight: 500, color: '#7DD4E8' }}>{stats.promedioAprobacion}h</div>
+          <div>
+            <div style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>Tiempo promedio de aprobación</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Desde que se envía hasta que se publica</div>
+          </div>
+        </div>
+      )}
+
+      {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1px', background: 'var(--gris-borde)' }}>
         <div style={{ background: '#fff', padding: '18px 20px' }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--azul)', marginBottom: 14 }}>Reportes por categoría</div>
@@ -128,11 +201,11 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Tabla */}
       <div style={{ background: '#fff', padding: '18px 16px', borderTop: '0.5px solid var(--gris-borde)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--azul)' }}>Reportes recientes</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--gris-suave)', border: '0.5px solid var(--gris-borde)', borderRadius: 8, padding: '5px 10px' }}>
-            <i className="ti ti-search" style={{ fontSize: 13, color: 'var(--gris-texto)' }} />
             <input type="text" placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
               style={{ border: 'none', background: 'transparent', fontSize: 11, outline: 'none', width: isMobile ? 100 : 180, color: 'var(--azul)', fontFamily: 'var(--sans)' }} />
           </div>

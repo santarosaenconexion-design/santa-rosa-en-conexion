@@ -23,7 +23,13 @@ function Login() {
         options: { data: { nombre, apellido, telefono } }
       })
       if (error) {
-        setMensaje(error.message)
+        if (error.message.includes('already registered')) {
+          setMensaje('Este email ya tiene una cuenta. Iniciá sesión.')
+        } else if (error.message.includes('Password should be at least')) {
+          setMensaje('La contraseña debe tener al menos 6 caracteres.')
+        } else {
+          setMensaje('No se pudo crear la cuenta. Intentá de nuevo.')
+        }
       } else if (data.user) {
         await supabase.from('usuarios').upsert({
           id: data.user.id, nombre, apellido, email, telefono,
@@ -35,8 +41,19 @@ function Login() {
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setMensaje(error.message)
-      else window.location.href = '/'
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setMensaje('Email o contraseña incorrectos. Si no tenés cuenta, registrate.')
+        } else if (error.message.includes('Email not confirmed')) {
+          setMensaje('Confirmá tu email antes de ingresar. Revisá tu bandeja de entrada.')
+        } else if (error.message.includes('Too many requests')) {
+          setMensaje('Demasiados intentos. Esperá unos minutos e intentá de nuevo.')
+        } else {
+          setMensaje('No se pudo iniciar sesión. Intentá de nuevo.')
+        }
+      } else {
+        window.location.href = '/'
+      }
     }
     setCargando(false)
   }
@@ -56,7 +73,7 @@ function Login() {
     fontSize: 12, fontWeight: 500, color: 'var(--azul)', display: 'block',
   }
 
-  const esError = mensaje.toLowerCase().includes('error') || mensaje.toLowerCase().includes('invalid')
+  const esError = !mensaje.includes('Revisá tu email')
 
   return (
     <div style={{
@@ -69,7 +86,6 @@ function Login() {
         overflow: 'hidden',
       }}>
 
-        {/* Header */}
         <div style={{ background: 'var(--azul)', padding: '22px 28px', borderBottom: '2px solid var(--celeste)' }}>
           <div style={{ fontSize: 15, fontWeight: 500, color: '#7DD4E8' }}>
             Santa Rosa <span style={{ color: '#fff' }}>en Conexión</span>
@@ -79,7 +95,6 @@ function Login() {
           </div>
         </div>
 
-        {/* Form */}
         <div style={{ padding: '26px 28px' }}>
           <form onSubmit={handleSubmit}>
             {esRegistro && (
@@ -146,9 +161,9 @@ function Login() {
             {mensaje && (
               <div style={{
                 fontSize: 12, marginBottom: 16, padding: '9px 12px', borderRadius: 8,
-                background: esError ? '#FCEBEB' : '#EAF3DE',
-                color: esError ? 'var(--rojo)' : 'var(--verde)',
-                borderLeft: `3px solid ${esError ? 'var(--rojo)' : 'var(--verde)'}`,
+                background: mensaje.includes('Revisá tu email') ? '#EAF3DE' : '#FCEBEB',
+                color: mensaje.includes('Revisá tu email') ? 'var(--verde)' : 'var(--rojo)',
+                borderLeft: `3px solid ${mensaje.includes('Revisá tu email') ? 'var(--verde)' : 'var(--rojo)'}`,
               }}>
                 {mensaje}
               </div>
