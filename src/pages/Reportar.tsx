@@ -122,11 +122,32 @@ function Reportar() {
 
         {duplicado && (
           <div style={{ background: '#FFF8E1', border: '1px solid #F59E0B', borderRadius: 'var(--radius)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, color: 'var(--amber)', marginBottom: 6, fontSize: 13 }}>⚠️ Ya existe un reporte similar a menos de 100 metros</div>
-            <div style={{ fontSize: 12, color: 'var(--azul)', marginBottom: 12 }}>{duplicado.calle} — {duplicado.apoyos_count ?? 0} apoyos</div>
+            <div style={{ fontWeight: 600, color: 'var(--amber)', marginBottom: 10, fontSize: 13 }}>⚠️ Ya existe un reporte similar a menos de 100 metros</div>
+            {duplicado.foto_url && (
+              <img src={duplicado.foto_url} alt="foto" style={{ width: '100%', maxHeight: 140, objectFit: 'cover', borderRadius: 6, marginBottom: 10, display: 'block' }} />
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              {duplicado.categoria_icono && <span style={{ fontSize: 16 }}>{duplicado.categoria_icono}</span>}
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--celeste)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {duplicado.categoria_nombre}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--azul)', marginBottom: 4 }}>
+              {duplicado.calle}{duplicado.entre_calles ? ` e/ ${duplicado.entre_calles}` : ''}
+            </div>
+            {duplicado.descripcion && (
+              <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginBottom: 8, lineHeight: 1.5 }}>{duplicado.descripcion}</div>
+            )}
+            <div style={{ fontSize: 11, color: 'var(--gris-texto)', marginBottom: 12 }}>
+              👥 {duplicado.apoyos_count ?? 0} vecinos apoyaron este reporte
+            </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={apoyarDuplicado} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--celeste)', color: '#fff', fontWeight: 500, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--sans)' }}>👍 Apoyar ese reporte</button>
-              <button onClick={() => setDuplicado(null)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--gris-borde)', background: '#fff', color: 'var(--gris-texto)', fontWeight: 500, fontSize: 12, cursor: 'pointer' }}>Reportar igual</button>
+              <button onClick={apoyarDuplicado} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--celeste)', color: '#fff', fontWeight: 500, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--sans)' }}>
+                👍 Sumarme a este reporte
+              </button>
+              <button onClick={() => setDuplicado(null)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--gris-borde)', background: '#fff', color: 'var(--gris-texto)', fontWeight: 500, fontSize: 12, cursor: 'pointer' }}>
+                Reportar igual
+              </button>
             </div>
           </div>
         )}
