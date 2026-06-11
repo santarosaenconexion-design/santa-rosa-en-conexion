@@ -9,6 +9,8 @@ type MiReporte = {
   descripcion: string
   foto_url: string
   estado: string
+  estado_solucion?: string
+  resuelto_at?: string
   created_at: string
   apoyos_count: number
   motivo_rechazo?: string
@@ -50,7 +52,7 @@ function MisReportes() {
     const [{ data: reportes }, { data: apoyos }] = await Promise.all([
       supabase
         .from('reportes')
-        .select('id, calle, entre_calles, descripcion, foto_url, estado, created_at, apoyos_count, motivo_rechazo, categorias(nombre, icono), barrios(nombre)')
+        .select('id, calle, entre_calles, descripcion, foto_url, estado, estado_solucion, resuelto_at, created_at, apoyos_count, motivo_rechazo, categorias(nombre, icono), barrios(nombre)')
         .eq('usuario_id', user.id)
         .order('created_at', { ascending: false }),
       supabase
@@ -73,6 +75,15 @@ function MisReportes() {
     await supabase.from('reportes').delete().eq('id', id)
     await cargar()
     setBorrando(null)
+  }
+
+  async function marcarResuelto(id: string) {
+    if (!confirm('¿Marcar este reporte como resuelto?')) return
+    await supabase.from('reportes').update({
+      estado_solucion: 'resuelto',
+      resuelto_at: new Date().toISOString()
+    }).eq('id', id)
+    await cargar()
   }
 
   const tabStyle = (t: string): React.CSSProperties => ({
@@ -144,6 +155,11 @@ function MisReportes() {
                         <span style={{ background: est.bg, color: est.color, fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 20, marginLeft: 'auto' }}>
                           {est.label}
                         </span>
+                        {r.estado_solucion === 'resuelto' && (
+                          <span style={{ background: '#EAF3DE', color: '#27500A', fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 20 }}>
+                            ✅ Resuelto
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--azul)', marginBottom: 4 }}>
                         {r.calle}{r.entre_calles ? ` e/ ${r.entre_calles}` : ''}
@@ -157,27 +173,35 @@ function MisReportes() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, color: 'var(--gris-texto)' }}>
                         <span>📅 {new Date(r.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                         <span>👥 <strong style={{ color: 'var(--azul)' }}>{r.apoyos_count ?? 0}</strong> apoyos</span>
+                        {r.resuelto_at && (
+                          <span>✅ {new Date(r.resuelto_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                        )}
                       </div>
 
-                      {/* Motivo de rechazo */}
                       {r.estado === 'rechazado' && (
                         <div style={{ marginTop: 8, fontSize: 11, color: '#791F1F', background: '#FCEBEB', padding: '8px 10px', borderRadius: 6, borderLeft: '3px solid var(--rojo)' }}>
                           <strong>Motivo del rechazo:</strong> {r.motivo_rechazo ?? 'Revisá tu email para más información.'}
                         </div>
                       )}
 
-                      {/* Borrar — solo pendientes y rechazados */}
+                      {r.estado === 'aprobado' && r.estado_solucion !== 'resuelto' && (
+                        <button onClick={() => marcarResuelto(r.id)} style={{
+                          marginTop: 10, padding: '5px 12px', borderRadius: 6,
+                          border: '1px solid #a0d4a0', background: 'transparent',
+                          color: 'var(--verde)', fontSize: 11, cursor: 'pointer',
+                          fontFamily: 'var(--sans)',
+                        }}>
+                          ✓ Marcar como resuelto
+                        </button>
+                      )}
+
                       {(r.estado === 'pendiente' || r.estado === 'rechazado') && (
-                        <button
-                          onClick={() => borrarReporte(r.id)}
-                          disabled={borrando === r.id}
-                          style={{
-                            marginTop: 10, padding: '5px 12px', borderRadius: 6,
-                            border: '1px solid #f1a0a0', background: 'transparent',
-                            color: 'var(--rojo)', fontSize: 11, cursor: 'pointer',
-                            fontFamily: 'var(--sans)',
-                          }}
-                        >
+                        <button onClick={() => borrarReporte(r.id)} disabled={borrando === r.id} style={{
+                          marginTop: 10, padding: '5px 12px', borderRadius: 6,
+                          border: '1px solid #f1a0a0', background: 'transparent',
+                          color: 'var(--rojo)', fontSize: 11, cursor: 'pointer',
+                          fontFamily: 'var(--sans)',
+                        }}>
                           🗑 Borrar reporte
                         </button>
                       )}
