@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import 'leaflet/dist/leaflet.css'
 
 type Reporte = {
@@ -27,9 +28,12 @@ function Mapa({ reportes }: Props) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { window.location.href = '/login'; return }
     setApoyando(reporte.id)
-    await supabase.from('apoyos').insert({ reporte_id: reporte.id, usuario_id: user.id })
-    await supabase.from('reportes').update({ apoyos_count: (reporte.apoyos_count ?? 0) + 1 }).eq('id', reporte.id)
-    setApoyosLocal(prev => ({ ...prev, [reporte.id]: (prev[reporte.id] ?? reporte.apoyos_count) + 1 }))
+    try {
+      const { apoyos_count } = await apiFetch(`/api/reportes/${reporte.id}/apoyar`, { method: 'POST' })
+      setApoyosLocal(prev => ({ ...prev, [reporte.id]: apoyos_count }))
+    } catch (err) {
+      console.error('Error al apoyar:', err)
+    }
     setApoyando(null)
   }
 

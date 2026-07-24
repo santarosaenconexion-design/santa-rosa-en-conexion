@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
 
 type FormData = { calle: string; entre_calles: string; descripcion: string; categoria_id: string; barrio_id: string }
@@ -70,10 +71,7 @@ function Reportar() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { navigate('/login'); return }
-      if (ubicacion) {
-        const { data: cercanos } = await supabase.rpc('reportes_cercanos', { lat: ubicacion.lat, lng: ubicacion.lng, radio_metros: 100 })
-        if (cercanos && cercanos.length > 0) { setDuplicado(cercanos[0]); setCargando(false); return }
-      }
+
       let foto_url = ''
       if (foto) {
         const { data: upload, error: uploadError } = await supabase.storage.from('fotos').upload(`reportes/${Date.now()}-${foto.name}`, foto)
@@ -81,26 +79,39 @@ function Reportar() {
         const { data: urlData } = supabase.storage.from('fotos').getPublicUrl(upload.path)
         foto_url = urlData.publicUrl
       }
-      const { error } = await supabase.from('reportes').insert({
-        calle: data.calle, entre_calles: data.entre_calles, descripcion: data.descripcion,
-        categoria_id: catSeleccionada || data.categoria_id, barrio_id: data.barrio_id === 'otro' ? null : data.barrio_id,
-        foto_url, usuario_id: user.id,
-        ubicacion: ubicacion ? `POINT(${ubicacion.lng} ${ubicacion.lat})` : null,
-        estado: 'pendiente',
+
+      await apiFetch('/api/reportes', {
+        method: 'POST',
+        body: JSON.stringify({
+          calle: data.calle, entre_calles: data.entre_calles, descripcion: data.descripcion,
+          categoria_id: catSeleccionada || data.categoria_id, barrio_id: data.barrio_id,
+          foto_url,
+          lat: ubicacion?.lat, lng: ubicacion?.lng,
+        }),
       })
-      if (error) throw error
       setMensaje('¡Reporte enviado! Será revisado por el equipo.')
       reset(); setFoto(null); setCatSeleccionada(''); setUbicacion(null); setGpsEstado('idle')
-    } catch { setMensaje('Error al enviar el reporte. Intentá de nuevo.') }
+    } catch (err) {
+      const e = err as { status?: number; body?: { duplicado?: unknown } }
+      if (e.status === 409 && e.body?.duplicado) {
+        setDuplicado(e.body.duplicado)
+      } else if (e.status === 422) {
+        setMensaje('Tu ubicación está fuera de Santa Rosa.')
+      } else {
+        setMensaje('Error al enviar el reporte. Intentá de nuevo.')
+      }
+    }
     setCargando(false)
   }
 
   async function apoyarDuplicado() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !duplicado) return
-    await supabase.from('apoyos').insert({ reporte_id: duplicado.id, usuario_id: user.id })
-    await supabase.from('reportes').update({ apoyos_count: (duplicado.apoyos_count ?? 0) + 1 }).eq('id', duplicado.id)
-    setMensaje('¡Te sumaste al reporte existente!'); setDuplicado(null)
+    if (!duplicado) return
+    try {
+      await apiFetch(`/api/reportes/${duplicado.id}/apoyar`, { method: 'POST' })
+      setMensaje('¡Te sumaste al reporte existente!'); setDuplicado(null)
+    } catch {
+      setMensaje('No se pudo registrar tu apoyo. Intentá de nuevo.')
+    }
   }
 
   const inputStyle: React.CSSProperties = {

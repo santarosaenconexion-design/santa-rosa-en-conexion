@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -31,12 +32,11 @@ function Login() {
           setMensaje('No se pudo crear la cuenta. Intentá de nuevo.')
         }
       } else if (data.user) {
-        await supabase.from('usuarios').upsert({
+        const { error: perfilError } = await supabase.from('usuarios').upsert({
           id: data.user.id, nombre, apellido, email, telefono,
         })
-        await supabase.functions.invoke('enviar-email', {
-          body: { tipo: 'bienvenida', email, nombre }
-        })
+        if (perfilError) console.error('No se pudo guardar el perfil:', perfilError)
+        try { await apiFetch('/api/auth/bienvenida', { method: 'POST' }) } catch { /* requiere sesión activa; si el proyecto exige confirmar el email, se intentará más adelante */ }
         setMensaje('¡Revisá tu email para confirmar tu cuenta!')
       }
     } else {

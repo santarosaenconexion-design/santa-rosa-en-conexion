@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 
 type Reporte = {
   id: string
@@ -28,8 +30,19 @@ function Admin() {
   const [cargando, setCargando] = useState(true)
   const [procesando, setProcesando] = useState<string | null>(null)
   const [tab, setTab] = useState<'pendiente' | 'aprobado' | 'rechazado'>('pendiente')
+  const [autorizado, setAutorizado] = useState<boolean | null>(null)
+  const navigate = useNavigate()
 
-  useEffect(() => { cargarReportes() }, [tab])
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { navigate('/'); return }
+      const { data: perfil } = await supabase.from('usuarios').select('es_admin').eq('id', data.user.id).single()
+      if (!perfil?.es_admin) { navigate('/'); return }
+      setAutorizado(true)
+    })
+  }, [navigate])
+
+  useEffect(() => { if (autorizado) cargarReportes() }, [tab, autorizado])
 
   async function cargarReportes() {
     setCargando(true)
@@ -44,14 +57,12 @@ function Admin() {
 
   async function aprobar(r: Reporte) {
     setProcesando(r.id)
-    await supabase.from('reportes').update({
-      estado: 'aprobado',
-      aprobado_at: new Date().toISOString()
-    }).eq('id', r.id)
-    await supabase.functions.invoke('enviar-email', {
-      body: { tipo: 'aprobado', email: r.usuarios?.email, nombre: r.usuarios?.nombre, calle: r.calle, categoria: r.categorias?.nombre }
-    })
-    await cargarReportes()
+    try {
+      await apiFetch(`/api/admin/reportes/${r.id}/aprobar`, { method: 'POST' })
+      await cargarReportes()
+    } catch {
+      alert('No se pudo aprobar el reporte. Intentá de nuevo.')
+    }
     setProcesando(null)
   }
 
@@ -59,16 +70,16 @@ function Admin() {
     const motivo = prompt('Motivo del rechazo:')
     if (!motivo) return
     setProcesando(r.id)
-    await supabase.from('reportes').update({
-      estado: 'rechazado',
-      motivo_rechazo: motivo
-    }).eq('id', r.id)
-    await supabase.functions.invoke('enviar-email', {
-      body: { tipo: 'rechazado', email: r.usuarios?.email, nombre: r.usuarios?.nombre, calle: r.calle, categoria: r.categorias?.nombre, motivo }
-    })
-    await cargarReportes()
+    try {
+      await apiFetch(`/api/admin/reportes/${r.id}/rechazar`, { method: 'POST', body: JSON.stringify({ motivo }) })
+      await cargarReportes()
+    } catch {
+      alert('No se pudo rechazar el reporte. Intentá de nuevo.')
+    }
     setProcesando(null)
   }
+
+  if (!autorizado) return null
 
   const tabStyle = (t: string): React.CSSProperties => ({
     fontSize: 13,
